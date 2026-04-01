@@ -2,79 +2,86 @@ import createError from 'http-errors';
 import express from 'express';
 import path from "path";
 import { fileURLToPath } from "url";
-
 import cookieParser from 'cookie-parser';
 import logger from 'morgan';
 import cors from "cors";
 import dotenv from "dotenv";
+import OpenAI from "openai";
 
 import indexRouter from './routes/index.js';
 import usersRouter from './routes/users.js';
 
-var app = express();
+const app = express();
 
+// ✅ Fix __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-
+// ✅ config
 dotenv.config();
 app.use(cors());
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+
+// static (optional, can keep)
 app.use(express.static(path.join(__dirname, 'public')));
 
+// routes
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 
-// catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  next(createError(404));
-});
-
-// error handler
-app.use(function(err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
-
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
-});
-
-
-import OpenAI from "openai";
+// ✅ OpenAI
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
+  baseURL: "https://openrouter.ai/api/v1",
 });
-
+// ✅ AI route
 app.post("/generate-script", async (req, res) => {
   try {
     const { topic } = req.body;
 
     const prompt = `
-    Create a 45-second YouTube Shorts script on: "${topic}"
+  Create a 45-second YouTube Shorts script on: "${topic}"
 
-    Format:
-    Hook (very engaging)
-    Main content
-    Ending (strong punchline)
-
-    Keep it short, viral, and engaging.
-    `;
+  Format:
+  Hook (very engaging)
+  Main content
+  Ending (strong punchline)
+  `;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4.1-mini",
-      messages: [{ role: "user", content: prompt }],
-    });
-
-    const script = response.choices[0].message.content;
-
-    res.json({ script });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ error: "Something went wrong" });
-  }
+  model: "meta-llama/llama-3-8b-instruct",
+  messages: [{ role: "user", content: prompt }],
 });
-module.exports = app;
+
+    res.json({ script: response.choices[0].message.content });
+
+  } catch (error) {
+  
+      console.log("FULL ERROR:", error);
+      res.status(500).json({ error: error.message });
+    }
+});
+
+// ❌ remove render (we don't use EJS)
+app.use(function(req, res, next) {
+  next(createError(404));
+});
+
+app.use(function(err, req, res, next) {
+  res.status(err.status || 500).json({
+    error: err.message
+  });
+});
+
+const PORT = 3000;
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+
+// ✅ FIX export
+export default app;
