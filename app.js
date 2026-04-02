@@ -56,8 +56,8 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
   baseURL: "https://openrouter.ai/api/v1",
   defaultHeaders: {
-    "HTTP-Referer": "https://ai-vdo-script-generator.netlify.app",
-    "X-Title": "AI Script Generator"
+    "HTTP-Referer": "https://scriptbyte.netlify.app", // your REAL frontend
+    "X-Title": "ScriptByte"
   }
 });
 
@@ -81,7 +81,7 @@ Format:
 `;
 
     const response = await openai.chat.completions.create({
-      model: "mistralai/mistral-7b-instruct", // 🔥 fast + good
+      model: "openai/gpt-3.5-turbo", // 🔥 fast + good
       messages: [
         { role: "user", content: prompt }
       ],
