@@ -83,12 +83,13 @@ Format:
     });
 
   } catch (error) {
-    console.error("FULL ERROR:", error.response?.data || error.message);
+  console.error("FULL ERROR:", error.response?.data || error.message);
 
-    res.status(500).json({
-      error: error.response?.data || error.message
-    });
-  }
+  res.status(500).json({
+    error: error.response?.data || error.message
+  });
+}
+  
 });
 
 // ❌ 404 handler
