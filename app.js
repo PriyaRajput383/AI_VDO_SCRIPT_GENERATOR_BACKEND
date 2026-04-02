@@ -17,73 +17,98 @@ const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ✅ config
+// ✅ Load env
 dotenv.config();
+
+// ✅ CORS (allow Netlify frontend)
 app.use(cors({
-  origin:"https://ai-vdo-script-generator.netlify.app/"
+  origin: "https://ai-vdo-script-generator.netlify.app",
+  methods: ["GET", "POST"],
+  credentials: true
 }));
+
+// ✅ Middleware
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
-// static (optional, can keep)
+// ✅ Static files (optional)
 app.use(express.static(path.join(__dirname, 'public')));
 
-// routes
+// ✅ Routes
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 
-// ✅ OpenAI
-
+// ✅ OpenAI (OpenRouter setup)
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
   baseURL: "https://openrouter.ai/api/v1",
+  defaultHeaders: {
+    "HTTP-Referer": "https://ai-vdo-script-generator.netlify.app",
+    "X-Title": "AI Script Generator"
+  }
 });
-// ✅ AI route
+
+// ✅ AI Route
 app.post("/generate-script", async (req, res) => {
   try {
     const { topic } = req.body;
 
-    const prompt = `
-  Create a 45-second YouTube Shorts script on: "${topic}"
+    // 🔴 Validation
+    if (!topic) {
+      return res.status(400).json({ error: "Topic is required" });
+    }
 
-  Format:
-  Hook (very engaging)
-  Main content
-  Ending (strong punchline)
-  `;
+    const prompt = `
+Create a 45-second YouTube Shorts script on: "${topic}"
+
+Format:
+- Hook (very engaging, 1-2 lines)
+- Main content (fast-paced, relatable)
+- Ending (strong punchline or twist)
+`;
 
     const response = await openai.chat.completions.create({
-  model: "meta-llama/llama-3-8b-instruct",
-  messages: [{ role: "user", content: prompt }],
-});
+      model: "mistralai/mistral-7b-instruct", // 🔥 fast + good
+      messages: [
+        { role: "user", content: prompt }
+      ],
+    });
 
-    res.json({ script: response.choices[0].message.content });
+    const script = response.choices?.[0]?.message?.content;
+
+    res.json({
+      script: script || "No script generated"
+    });
 
   } catch (error) {
-  
-      console.log("FULL ERROR:", error);
-      res.status(500).json({ error: error.message });
-    }
+    console.error("FULL ERROR:", error.response?.data || error.message);
+
+    res.status(500).json({
+      error: error.response?.data || error.message
+    });
+  }
 });
 
-// ❌ remove render (we don't use EJS)
+// ❌ 404 handler
 app.use(function(req, res, next) {
   next(createError(404));
 });
 
+// ❌ Error handler
 app.use(function(err, req, res, next) {
   res.status(err.status || 500).json({
     error: err.message
   });
 });
 
-const PORT = 3000;
+// ✅ PORT (important for Render)
+const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
 
-// ✅ FIX export
+// ✅ Export
 export default app;
