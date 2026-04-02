@@ -23,9 +23,13 @@ dotenv.config();
 // ✅ CORS (allow Netlify frontend)
 app.use(cors({
   origin: "https://scriptbyte.netlify.app",
-  methods: ["GET", "POST"],
-  credentials: true
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type"],
 }));
+
+// ✅ handle preflight
+app.options("*", cors());
+
 // ✅ Middleware
 app.use(logger('dev'));
 app.use(express.json());
