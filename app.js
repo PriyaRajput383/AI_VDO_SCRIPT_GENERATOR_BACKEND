@@ -22,11 +22,10 @@ dotenv.config();
 
 // ✅ CORS (allow Netlify frontend)
 app.use(cors({
-  origin: "https://ai-vdo-script-generator.netlify.app",
+  origin: "https://scriptbyte.netlify.app",
   methods: ["GET", "POST"],
   credentials: true
 }));
-
 // ✅ Middleware
 app.use(logger('dev'));
 app.use(express.json());
