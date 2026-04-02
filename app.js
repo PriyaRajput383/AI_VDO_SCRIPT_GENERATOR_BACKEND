@@ -17,16 +17,24 @@ const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ✅ Load env
-dotenv.config();
+
 
 // ✅ CORS (allow Netlify frontend)
-app.use(cors({
-  origin: "https://scriptbyte.netlify.app",
-  methods: ["GET", "POST", "OPTIONS"],
-  allowedHeaders: ["Content-Type"],
-}));
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*"); // allow all (fix now, secure later)
+  res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type");
 
+  // ✅ handle preflight request
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+
+  next();
+});
+
+// ✅ Load env
+dotenv.config();
 // ✅ handle preflight
 app.options("*", cors());
 
