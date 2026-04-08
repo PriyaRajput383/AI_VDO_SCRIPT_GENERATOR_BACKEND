@@ -17,56 +17,59 @@ const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-
-
-// ✅ CORS (allow Netlify frontend)
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*"); // allow all (fix now, secure later)
-  res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type");
-
-  // ✅ handle preflight request
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
-  }
-
-  next();
-});
-
-// ✅ Load env
+// ✅ Load env FIRST
 dotenv.config();
-// ✅ handle preflight
+
+
+// ======================================================
+// ✅ ✅ PROPER CORS SETUP (FIXED)
+// ======================================================
+app.use(cors());
+
+// ✅ Handle preflight
 app.options("*", cors());
 
-// ✅ Middleware
+
+// ======================================================
+// ✅ MIDDLEWARE
+// ======================================================
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
-// ✅ Static files (optional)
+
+// ✅ Static files
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ✅ Routes
+
+// ======================================================
+// ✅ ROUTES
+// ======================================================
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 
-// ✅ OpenAI (OpenRouter setup)
+
+// ======================================================
+// ✅ OPENAI (OpenRouter)
+// ======================================================
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
   baseURL: "https://openrouter.ai/api/v1",
   defaultHeaders: {
-    "HTTP-Referer": "https://scriptbyte.netlify.app", // your REAL frontend
+    "HTTP-Referer": "https://scriptbyte.netlify.app",
     "X-Title": "ScriptByte"
   }
 });
 
-// ✅ AI Route
+
+// ======================================================
+// ✅ AI ROUTE
+// ======================================================
 app.post("/generate-script", async (req, res) => {
   try {
     const { topic } = req.body;
 
-    // 🔴 Validation
     if (!topic) {
       return res.status(400).json({ error: "Topic is required" });
     }
@@ -81,7 +84,7 @@ Format:
 `;
 
     const response = await openai.chat.completions.create({
-      model: "openai/gpt-3.5-turbo", // 🔥 fast + good
+      model: "openai/gpt-4o-mini",
       messages: [
         { role: "user", content: prompt }
       ],
@@ -94,33 +97,42 @@ Format:
     });
 
   } catch (error) {
-  console.error("FULL ERROR:", error.response?.data || error.message);
+    console.error("FULL ERROR:", error.response?.data || error.message);
 
-  res.status(500).json({
-    error: error.response?.data || error.message
-  });
-}
-  
+    res.status(500).json({
+      error: error.response?.data || error.message
+    });
+  }
 });
 
-// ❌ 404 handler
+
+// ======================================================
+// ❌ 404 HANDLER
+// ======================================================
 app.use(function(req, res, next) {
   next(createError(404));
 });
 
-// ❌ Error handler
+
+// ======================================================
+// ❌ ERROR HANDLER
+// ======================================================
 app.use(function(err, req, res, next) {
   res.status(err.status || 500).json({
     error: err.message
   });
 });
 
-// ✅ PORT (important for Render)
+
+// ======================================================
+// ✅ SERVER START
+// ======================================================
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
+
 
 // ✅ Export
 export default app;
